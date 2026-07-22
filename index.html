@@ -1,0 +1,1842 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>思考マップ | Mindscratch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<style>
+  :root{
+    --ink: #20232B;
+    --text-muted: #7A8194;
+    --bg-canvas: #FCFCFD;
+    --grid-dot: #E7E9EE;
+    --panel-bg: #FFFFFF;
+    --panel-border: #E5E7EB;
+    --primary: #6B3FA0;
+    --primary-hover: #7C4FB3;
+    --danger: #D64545;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg-canvas);
+    font-family: 'Inter', sans-serif;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ---------- Top bar ---------- */
+
+  .topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 56px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 16px;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--panel-border);
+  }
+  .brand {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .tabs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+    flex: 1;
+    height: 100%;
+    scrollbar-width: thin;
+  }
+  .tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px 7px 14px;
+    border-radius: 999px;
+    background: #F1F1F4;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    border: 1px solid transparent;
+    flex-shrink: 0;
+  }
+  .tab.active {
+    background: #F1E9F8;
+    color: var(--primary);
+    border-color: #DCC8EC;
+    font-weight: 600;
+  }
+  .tab-label { outline: none; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+  .tab-label[contenteditable="true"] {
+    background: #fff;
+    box-shadow: 0 0 0 1px var(--primary) inset;
+    border-radius: 5px;
+    padding: 1px 4px;
+  }
+  .tab-close {
+    border: none;
+    background: transparent;
+    color: inherit;
+    opacity: 0.5;
+    cursor: pointer;
+    font-size: 11px;
+    padding: 2px;
+    line-height: 1;
+  }
+  .tab-close:hover { opacity: 1; color: var(--danger); }
+  .tab-add {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px dashed #C7CBD4;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 15px;
+    cursor: pointer;
+  }
+  .tab-add:hover { border-color: var(--primary); color: var(--primary); }
+
+  .save-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .autosave-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .autosave-toggle input { accent-color: var(--primary); width: 14px; height: 14px; }
+  .status {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    min-width: 90px;
+  }
+
+  .btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+    background: #F1F1F4;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 8px 14px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn:hover { background: #E7E7EC; }
+  .btn-primary {
+    background: var(--primary);
+    color: #fff;
+    font-weight: 600;
+  }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn:disabled { opacity: 0.35; cursor: default; pointer-events: none; }
+  .icon-btn { padding: 8px 11px; font-size: 15px; line-height: 1; }
+
+  /* ---------- Floating toolbar ---------- */
+
+  .toolbar-float {
+    position: fixed;
+    top: 70px;
+    left: 18px;
+    z-index: 15;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 999px;
+    box-shadow: 0 6px 20px rgba(20,23,30,0.08);
+    flex-wrap: wrap;
+    max-width: calc(100vw - 36px);
+  }
+  .toolbar-float .divider {
+    width: 1px;
+    height: 22px;
+    background: var(--panel-border);
+  }
+  .swatches { display: flex; gap: 6px; }
+  .swatch {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid rgba(0,0,0,0.08);
+    cursor: pointer;
+    padding: 0;
+  }
+  .swatch:hover { transform: scale(1.12); }
+
+  .export-wrap { position: relative; }
+  .export-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(20,23,30,0.15);
+    padding: 6px;
+    display: none;
+    flex-direction: column;
+    min-width: 150px;
+    z-index: 30;
+  }
+  .export-menu.open { display: flex; }
+  .export-menu button {
+    text-align: left;
+    border: none;
+    background: transparent;
+    padding: 9px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .export-menu button:hover { background: #F1F1F4; }
+
+  /* ---------- Canvas ---------- */
+
+  .canvas-wrap {
+    position: absolute;
+    top: 56px; left: 0; right: 0; bottom: 0;
+    background-color: var(--bg-canvas);
+    background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
+    background-size: 26px 26px;
+    background-position: 0 0;
+    cursor: grab;
+    touch-action: none;
+  }
+  .canvas-wrap.panning { cursor: grabbing; }
+
+  .world {
+    position: absolute;
+    top: 0; left: 0;
+    width: 6000px;
+    height: 6000px;
+    transform-origin: 0 0;
+  }
+
+  .edge-svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 6000px;
+    height: 6000px;
+    overflow: visible;
+    pointer-events: none;
+  }
+  .edge-svg path {
+    fill: none;
+    stroke: #B7BCC7;
+    stroke-linecap: round;
+  }
+
+  /* ---------- Card ---------- */
+
+  .card {
+    position: absolute;
+    top: 0; left: 0;
+    max-width: 240px;
+    background: var(--bg, #fff);
+    border-left: 4px solid var(--edge, #999);
+    box-shadow: 0 4px 12px rgba(20,23,30,0.12);
+    transform: translate(-50%, -50%);
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+    transition: box-shadow 0.15s ease;
+  }
+  .card:active { cursor: grabbing; }
+  .card.selected {
+    box-shadow: 0 0 0 2px var(--primary), 0 8px 20px rgba(20,23,30,0.18);
+  }
+  .card.root-card { border-left: none; }
+  .card .card-text {
+    font-family: 'Inter', sans-serif;
+    line-height: 1.4;
+    word-break: break-word;
+    outline: none;
+    cursor: text;
+  }
+  .card .card-text[contenteditable="true"] {
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.15) inset;
+    border-radius: 4px;
+    padding: 2px 4px;
+    margin: -2px -4px;
+  }
+
+  .card-actions {
+    position: absolute;
+    top: -12px;
+    right: -8px;
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+  }
+  .card.selected .card-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .act {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: none;
+    background: var(--ink);
+    color: #fff;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  }
+  .act:hover { background: var(--danger); }
+
+  .collapse-toggle {
+    position: absolute;
+    bottom: -11px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #fff;
+    color: var(--ink);
+    border: 1px solid var(--panel-border);
+    border-radius: 999px;
+    font-size: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    padding: 2px 7px;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(20,23,30,0.15);
+    z-index: 2;
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+  .collapse-toggle.is-collapsed {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+
+  /* ---------- Hint bar ---------- */
+
+  .hint {
+    position: fixed;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 999px;
+    padding: 8px 16px;
+    box-shadow: 0 6px 18px rgba(20,23,30,0.08);
+    max-width: calc(100vw - 36px);
+    text-align: center;
+  }
+  .hint button {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .hint.hidden { display: none; }
+
+  /* ---------- Zoom controls ---------- */
+
+  .zoom-controls {
+    position: fixed;
+    bottom: 18px;
+    right: 18px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 6px;
+    box-shadow: 0 6px 18px rgba(20,23,30,0.08);
+  }
+  .zoom-controls button {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: none;
+    background: #F1F1F4;
+    color: var(--ink);
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .zoom-controls button:hover { background: #E7E7EC; }
+
+  /* ---------- Responsive (phone / tablet) ---------- */
+
+  @media (max-width: 640px) {
+    .brand { display: none; }
+    .save-controls { gap: 6px; }
+    .autosave-toggle span { display: none; }
+    .status { display: none; }
+    .btn { padding: 7px 10px; font-size: 12px; }
+    .toolbar-float { top: 64px; left: 10px; padding: 6px 8px; gap: 6px; }
+    .hint { font-size: 10px; padding: 6px 12px; bottom: 10px; }
+    .zoom-controls { bottom: 10px; right: 10px; }
+    .card { max-width: 190px; }
+  }
+
+  @media (max-width: 420px) {
+    .export-wrap .btn { padding: 7px 8px; }
+    .tab { padding: 6px 8px 6px 10px; font-size: 12px; }
+    .tab-label { max-width: 120px; }
+  }
+
+  /* ---------- Print (PDF export) ---------- */
+
+  #printArea { display: none; }
+  @media print {
+    body > *:not(#printArea) { display: none !important; }
+    #printArea {
+      display: block !important;
+      position: static;
+      padding: 24px;
+      font-family: 'Inter', sans-serif;
+      color: var(--ink);
+    }
+    #printArea h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 26px;
+      margin-bottom: 14px;
+    }
+    #printArea ul { margin: 0 0 0 18px; padding: 0; }
+    #printArea li {
+      margin: 6px 0;
+      line-height: 1.5;
+      font-size: 13px;
+      list-style: none;
+      position: relative;
+      padding-left: 16px;
+    }
+    #printArea .dot {
+      position: absolute;
+      left: 0; top: 6px;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="brand">🧵 思考マップ</div>
+    <div class="tabs" id="tabs">
+      <button class="tab-add" id="addTabBtn" title="新しいテーマを追加">＋</button>
+    </div>
+    <div class="save-controls">
+      <label class="autosave-toggle">
+        <input type="checkbox" id="autosaveToggle" checked>
+        自動保存
+      </label>
+      <button class="btn" id="manualSaveBtn">今すぐ保存</button>
+      <span class="status" id="status">未接続</span>
+    </div>
+  </div>
+
+  <div class="toolbar-float">
+    <button class="btn btn-primary" id="addBtn">＋ ノードを派生</button>
+    <button class="btn icon-btn" id="undoBtn" title="元に戻す (Ctrl+Z)">↺</button>
+    <button class="btn icon-btn" id="redoBtn" title="やり直す (Ctrl+Y)">↻</button>
+    <div class="swatches" id="swatches"></div>
+    <div class="divider"></div>
+    <div class="export-wrap">
+      <button class="btn" id="exportBtn">書き出し ▾</button>
+      <div class="export-menu" id="exportMenu">
+        <button data-fmt="csv">CSV で書き出す</button>
+        <button data-fmt="pdf">PDF で書き出す</button>
+        <button data-fmt="pptx">PowerPoint で書き出す（編集可）</button>
+        <button data-fmt="json">JSON で書き出す</button>
+      </div>
+    </div>
+    <button class="btn" id="importBtn">読み込み（JSON）</button>
+    <input type="file" id="importFileInput" accept="application/json" hidden>
+  </div>
+
+  <div class="canvas-wrap" id="canvasWrap">
+    <div class="world" id="world">
+      <svg class="edge-svg" id="edgeSvg"></svg>
+    </div>
+  </div>
+
+  <div class="hint" id="hint">
+    <span>選択中のノードから ＋ / Enter で派生 ・ ドラッグで移動 ・ ✕ で削除 ・ タブをダブルクリックでテーマ名変更</span>
+    <button id="hintClose">✕</button>
+  </div>
+
+  <div class="zoom-controls">
+    <button id="zoomIn">＋</button>
+    <button id="zoomReset">⟳</button>
+    <button id="zoomOut">－</button>
+  </div>
+
+  <div id="printArea"></div>
+
+<script>
+(function(){
+  'use strict';
+
+  const WORLD_SIZE = 6000;
+  const CENTER = 3000;
+
+  const BRANCH_COLORS = ['#128277', '#2D6FB0', '#B8790A', '#C43575', '#3C7A4E'];
+  const ROOT_STYLE = { bg: '#20232B', edge: '#20232B', color: '#FFFFFF' };
+
+  let boards = [];
+  let activeBoardId = null;
+  let globalNodeCounter = 0;
+
+  let selectedId = null;
+  let view = { tx: 0, ty: 0, scale: 1 };
+  let autosaveEnabled = true;
+  let autosaveTimer = null;
+
+  let undoStack = [];
+  let redoStack = [];
+  const MAX_HISTORY = 50;
+
+  const cardEls = new Map();
+  const edgeEls = new Map(); // keyed by child node id
+
+  const wrapEl = document.getElementById('canvasWrap');
+  const worldEl = document.getElementById('world');
+  const svgEl = document.getElementById('edgeSvg');
+  const statusEl = document.getElementById('status');
+  const swatchesEl = document.getElementById('swatches');
+  const tabsEl = document.getElementById('tabs');
+  const addTabBtn = document.getElementById('addTabBtn');
+  const exportBtn = document.getElementById('exportBtn');
+  const exportMenu = document.getElementById('exportMenu');
+  const printArea = document.getElementById('printArea');
+
+  // ---------- Utility ----------
+
+  function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+  function hashStr(s) {
+    let h = 0;
+    for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; }
+    return h;
+  }
+
+  function setStatus(text) { statusEl.textContent = text; }
+
+  function nowTimeStr() {
+    const d = new Date();
+    return d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  }
+
+  function sanitizeFilename(s) {
+    return (s || 'mindmap').replace(/[\\/:*?"<>|]/g, '_').slice(0, 50);
+  }
+
+  function mixWithWhite(hex, ratio) {
+    const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+    const nr = Math.round(r + (255 - r) * ratio);
+    const ng = Math.round(g + (255 - g) * ratio);
+    const nb = Math.round(b + (255 - b) * ratio);
+    return '#' + [nr, ng, nb].map(v => v.toString(16).padStart(2, '0')).join('');
+  }
+
+  function screenToWorld(clientX, clientY) {
+    const rect = wrapEl.getBoundingClientRect();
+    const sx = clientX - rect.left;
+    const sy = clientY - rect.top;
+    return { x: (sx - view.tx) / view.scale, y: (sy - view.ty) / view.scale };
+  }
+
+  function applyView() {
+    worldEl.style.transform = `translate(${view.tx}px, ${view.ty}px) scale(${view.scale})`;
+    const size = 26 * view.scale;
+    wrapEl.style.backgroundSize = `${size}px ${size}px`;
+    wrapEl.style.backgroundPosition = `${view.tx}px ${view.ty}px`;
+  }
+
+  function centerView() {
+    const rect = wrapEl.getBoundingClientRect();
+    view.scale = 1;
+    view.tx = rect.width / 2 - CENTER * view.scale;
+    view.ty = rect.height / 2 - CENTER * view.scale;
+    applyView();
+  }
+
+  // ---------- Board / data model ----------
+
+  function getActiveBoard() { return boards.find(b => b.id === activeBoardId); }
+  function findNodeInBoard(board, id) { return board.nodes.find(n => n.id === id); }
+  function getRoot(board) { return board.nodes.find(n => n.parentId === null); }
+  function getBoardTitle(board) { const r = getRoot(board); return r ? r.text : '無題'; }
+
+  function makeNode(board, x, y, text, parentId, depth, branchColor) {
+    const node = {
+      id: 'n' + (globalNodeCounter++),
+      x, y, text, parentId, depth,
+      branchColor: branchColor || null,
+      collapsed: false
+    };
+    board.nodes.push(node);
+    return node;
+  }
+
+  function createBoard(themeText) {
+    const board = { id: 'b' + Date.now() + Math.floor(Math.random() * 1000), nodes: [], view: null };
+    makeNode(board, CENTER, CENTER, themeText, null, 0, null);
+    return board;
+  }
+
+  function computeChildPosition(board, parentNode) {
+    const siblings = board.nodes.filter(n => n.parentId === parentNode.id);
+    const idx = siblings.length;
+    let angleDeg, radius;
+    if (parentNode.parentId === null) {
+      angleDeg = (idx * 137.508) % 360;
+      radius = 220;
+    } else {
+      const grandparent = findNodeInBoard(board, parentNode.parentId);
+      const outward = grandparent
+        ? Math.atan2(parentNode.y - grandparent.y, parentNode.x - grandparent.x) * 180 / Math.PI
+        : -90;
+      const spread = 80;
+      const count = idx + 1;
+      const step = count > 1 ? spread / count : 0;
+      angleDeg = outward - spread / 2 + step * (idx + 0.5);
+      radius = Math.max(135, 175 - parentNode.depth * 8);
+    }
+    const rad = angleDeg * Math.PI / 180;
+    return { x: parentNode.x + Math.cos(rad) * radius, y: parentNode.y + Math.sin(rad) * radius };
+  }
+
+  function addChildNode(board, parentNode, text) {
+    const pos = computeChildPosition(board, parentNode);
+    const depth = parentNode.depth + 1;
+    let branchColor;
+    if (parentNode.parentId === null) {
+      const depth1Count = board.nodes.filter(n => n.parentId === parentNode.id).length;
+      branchColor = BRANCH_COLORS[depth1Count % BRANCH_COLORS.length];
+    } else {
+      branchColor = parentNode.branchColor;
+    }
+    return makeNode(board, pos.x, pos.y, text, parentNode.id, depth, branchColor);
+  }
+
+  function seedDefaultBoards() {
+    const board = createBoard('新しいプロジェクト');
+    const root = getRoot(board);
+    const idea = addChildNode(board, root, 'アイデア出し');
+    addChildNode(board, idea, '競合調査');
+    addChildNode(board, idea, 'ブレスト会議');
+    const task = addChildNode(board, root, '次のアクション');
+    addChildNode(board, task, 'プロトタイプ作成');
+    boards.push(board);
+    activeBoardId = board.id;
+  }
+
+  // ---------- Card style by depth ----------
+
+  function styleForNode(node) {
+    if (node.parentId === null) {
+      return { bg: ROOT_STYLE.bg, edge: ROOT_STYLE.edge, color: ROOT_STYLE.color, fontSize: '17px', fontWeight: '700', padding: '18px 22px', radius: '14px', minWidth: '170px', rootCard: true };
+    }
+    const base = node.branchColor || BRANCH_COLORS[0];
+    const depth = node.depth;
+    if (depth === 1) {
+      return { bg: base, edge: base, color: '#FFFFFF', fontSize: '15px', fontWeight: '600', padding: '14px 18px', radius: '12px', minWidth: '150px', rootCard: false };
+    }
+    const ratio = depth === 2 ? 0.55 : (depth === 3 ? 0.72 : 0.85);
+    const bg = mixWithWhite(base, ratio);
+    const small = depth >= 4;
+    return {
+      bg, edge: base, color: '#20232B',
+      fontSize: depth === 2 ? '13.5px' : '12.5px',
+      fontWeight: '500',
+      padding: depth === 2 ? '11px 15px' : '9px 13px',
+      radius: '10px',
+      minWidth: small ? '100px' : '120px',
+      rootCard: false
+    };
+  }
+
+  function applyCardStyle(el, node) {
+    const s = styleForNode(node);
+    el.style.setProperty('--bg', s.bg);
+    el.style.setProperty('--edge', s.edge);
+    el.style.color = s.color;
+    el.style.fontSize = s.fontSize;
+    el.style.fontWeight = s.fontWeight;
+    el.style.padding = s.padding;
+    el.style.borderRadius = s.radius;
+    el.style.minWidth = s.minWidth;
+    el.classList.toggle('root-card', s.rootCard);
+  }
+
+  function recolorSubtree(board, nodeId, hex) {
+    const node = findNodeInBoard(board, nodeId);
+    if (!node || node.parentId === null) return;
+    const stack = [node];
+    while (stack.length) {
+      const cur = stack.pop();
+      cur.branchColor = hex;
+      const el = cardEls.get(cur.id);
+      if (el) applyCardStyle(el, cur);
+      board.nodes.filter(n => n.parentId === cur.id).forEach(c => stack.push(c));
+    }
+  }
+
+  // ---------- Rendering: cards ----------
+
+  function createCardEl(node) {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.id = node.id;
+    el.style.left = node.x + 'px';
+    el.style.top = node.y + 'px';
+    applyCardStyle(el, node);
+
+    if (node.parentId === null) {
+      el.innerHTML = `<div class="card-text" contenteditable="false" spellcheck="false"></div>`;
+    } else {
+      el.innerHTML = `
+        <div class="card-actions">
+          <button class="act act-del" title="削除（子孫も削除されます）">✕</button>
+        </div>
+        <div class="card-text" contenteditable="false" spellcheck="false"></div>`;
+    }
+    el.querySelector('.card-text').textContent = node.text;
+
+    worldEl.appendChild(el);
+    cardEls.set(node.id, el);
+    bindCardEvents(node.id, el);
+    return el;
+  }
+
+  function updateCardPosition(node) {
+    const el = cardEls.get(node.id);
+    if (!el) return;
+    el.style.left = node.x + 'px';
+    el.style.top = node.y + 'px';
+  }
+
+  function removeCardEl(id) {
+    const el = cardEls.get(id);
+    if (el) el.remove();
+    cardEls.delete(id);
+  }
+
+  function selectCard(id) {
+    if (selectedId && cardEls.has(selectedId)) cardEls.get(selectedId).classList.remove('selected');
+    selectedId = id;
+    if (id && cardEls.has(id)) cardEls.get(id).classList.add('selected');
+    highlightSwatch();
+  }
+
+  function deselectAll() { selectCard(null); }
+
+  // ---------- Rendering: edges (derived from parentId) ----------
+
+  function computePath(x1, y1, x2, y2, seed) {
+    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+    const dx = x2 - x1, dy = y2 - y1;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len, ny = dx / len;
+    const rand = Math.abs(Math.sin(seed)) * 0.5 + 0.5;
+    const offset = (len * 0.14) * ((seed % 2 === 0) ? 1 : -1) * (0.4 + rand * 0.6);
+    const cx = mx + nx * offset, cy = my + ny * offset;
+    return `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`;
+  }
+
+  function createEdgeForNode(node, animateIn) {
+    if (node.parentId === null) return;
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.dataset.id = node.id;
+    const width = clamp(3 - node.depth * 0.35, 1.4, 3);
+    path.setAttribute('stroke-width', width);
+    path.style.opacity = '0.8';
+    svgEl.appendChild(path);
+    edgeEls.set(node.id, path);
+    drawEdgeForNode(node, animateIn);
+  }
+
+  function drawEdgeForNode(node, animateIn) {
+    const board = getActiveBoard();
+    const parent = findNodeInBoard(board, node.parentId);
+    const path = edgeEls.get(node.id);
+    if (!parent || !path) return;
+    const d = computePath(parent.x, parent.y, node.x, node.y, hashStr(node.id));
+    path.setAttribute('d', d);
+    if (animateIn) {
+      try {
+        const len = path.getTotalLength();
+        path.style.strokeDasharray = len;
+        path.style.strokeDashoffset = len;
+        path.style.transition = 'none';
+        requestAnimationFrame(() => {
+          path.style.transition = 'stroke-dashoffset 0.5s ease';
+          path.style.strokeDashoffset = 0;
+        });
+      } catch (e) { /* ignore */ }
+    }
+  }
+
+  function removeEdgeEl(id) {
+    const el = edgeEls.get(id);
+    if (el) el.remove();
+    edgeEls.delete(id);
+  }
+
+  function redrawEdgesTouching(nodeId) {
+    const board = getActiveBoard();
+    const node = findNodeInBoard(board, nodeId);
+    if (node && node.parentId) drawEdgeForNode(node, false);
+    board.nodes.filter(n => n.parentId === nodeId).forEach(child => drawEdgeForNode(child, false));
+  }
+
+  function fullRenderBoard(board) {
+    cardEls.forEach(el => el.remove()); cardEls.clear();
+    edgeEls.forEach(el => el.remove()); edgeEls.clear();
+    board.nodes.forEach(createCardEl);
+    board.nodes.forEach(n => { if (n.parentId !== null) createEdgeForNode(n, false); });
+    board.nodes.forEach(refreshCollapseToggle);
+    refreshVisibility();
+  }
+
+  // ---------- Collapse / expand ----------
+
+  function countDescendants(board, id) {
+    let count = 0;
+    const stack = [id];
+    while (stack.length) {
+      const cur = stack.pop();
+      board.nodes.filter(n => n.parentId === cur).forEach(c => { count++; stack.push(c.id); });
+    }
+    return count;
+  }
+
+  function isNodeVisible(board, node) {
+    let cur = node;
+    while (cur.parentId !== null) {
+      const parent = findNodeInBoard(board, cur.parentId);
+      if (!parent) break;
+      if (parent.collapsed) return false;
+      cur = parent;
+    }
+    return true;
+  }
+
+  function refreshVisibility() {
+    const board = getActiveBoard();
+    board.nodes.forEach(node => {
+      const visible = isNodeVisible(board, node);
+      const cardEl = cardEls.get(node.id);
+      if (cardEl) cardEl.style.display = visible ? '' : 'none';
+      if (node.parentId !== null) {
+        const edgeEl = edgeEls.get(node.id);
+        if (edgeEl) edgeEl.style.display = visible ? '' : 'none';
+      }
+    });
+  }
+
+  function refreshCollapseToggle(node) {
+    const el = cardEls.get(node.id);
+    if (!el) return;
+    const board = getActiveBoard();
+    const childCount = board.nodes.filter(n => n.parentId === node.id).length;
+    let toggle = el.querySelector('.collapse-toggle');
+    if (childCount === 0) {
+      if (toggle) toggle.remove();
+      return;
+    }
+    if (!toggle) {
+      toggle = document.createElement('button');
+      toggle.className = 'collapse-toggle';
+      toggle.addEventListener('mousedown', (e) => e.stopPropagation());
+      toggle.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+      toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        node.collapsed = !node.collapsed;
+        refreshVisibility();
+        refreshCollapseToggle(node);
+        scheduleAutoSave();
+      });
+      el.appendChild(toggle);
+    }
+    const descCount = countDescendants(board, node.id);
+    toggle.textContent = node.collapsed ? ('▶ ' + descCount) : '▼';
+    toggle.title = node.collapsed ? '展開する' : '折りたたむ';
+    toggle.classList.toggle('is-collapsed', !!node.collapsed);
+  }
+
+  // ---------- Undo / Redo ----------
+
+  function snapshotState() {
+    return JSON.stringify({ boards, activeBoardId });
+  }
+
+  function restoreSnapshot(json) {
+    const parsed = JSON.parse(json);
+    boards = parsed.boards;
+    activeBoardId = parsed.activeBoardId;
+    selectedId = null;
+    fullRenderBoard(getActiveBoard());
+    renderTabs();
+  }
+
+  function pushHistory() {
+    undoStack.push(snapshotState());
+    if (undoStack.length > MAX_HISTORY) undoStack.shift();
+    redoStack.length = 0;
+    updateUndoRedoButtons();
+  }
+
+  function undo() {
+    if (undoStack.length === 0) { setStatus('これ以上戻せません'); return; }
+    const current = snapshotState();
+    const prev = undoStack.pop();
+    redoStack.push(current);
+    restoreSnapshot(prev);
+    setStatus('元に戻しました');
+    updateUndoRedoButtons();
+    scheduleAutoSave();
+  }
+
+  function redo() {
+    if (redoStack.length === 0) { setStatus('これ以上やり直せません'); return; }
+    const current = snapshotState();
+    const next = redoStack.pop();
+    undoStack.push(current);
+    restoreSnapshot(next);
+    setStatus('やり直しました');
+    updateUndoRedoButtons();
+    scheduleAutoSave();
+  }
+
+  function updateUndoRedoButtons() {
+    const undoBtn = document.getElementById('undoBtn');
+    const redoBtn = document.getElementById('redoBtn');
+    if (undoBtn) undoBtn.disabled = undoStack.length === 0;
+    if (redoBtn) redoBtn.disabled = redoStack.length === 0;
+  }
+
+  // ---------- Card interactions ----------
+
+  function bindCardEvents(id, el) {
+    const textEl = el.querySelector('.card-text');
+    const delBtn = el.querySelector('.act-del');
+
+    el.addEventListener('mousedown', (e) => {
+      if (e.target.closest('.act') || e.target.closest('.collapse-toggle')) return;
+      e.stopPropagation();
+      selectCard(id);
+      startCardDrag(id, e, false);
+    });
+
+    el.addEventListener('touchstart', (e) => {
+      if (e.target.closest('.act') || e.target.closest('.collapse-toggle')) return;
+      e.stopPropagation();
+      e.preventDefault();
+      const t = e.touches[0];
+      selectCard(id);
+      startCardDrag(id, { clientX: t.clientX, clientY: t.clientY }, true);
+    }, { passive: false });
+
+    textEl.addEventListener('dblclick', (e) => { e.stopPropagation(); enterEditMode(id); });
+
+    textEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        textEl.blur();
+        branchFromNode(id);
+      }
+    });
+
+    textEl.addEventListener('blur', () => { exitEditMode(id); });
+
+    if (delBtn) {
+      delBtn.addEventListener('click', (e) => { e.stopPropagation(); deleteNode(id); });
+    }
+  }
+
+  function enterEditMode(id) {
+    const el = cardEls.get(id);
+    const textEl = el.querySelector('.card-text');
+    textEl.setAttribute('contenteditable', 'true');
+    textEl.focus();
+    const range = document.createRange();
+    range.selectNodeContents(textEl);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
+  function exitEditMode(id) {
+    const el = cardEls.get(id);
+    if (!el) return;
+    const textEl = el.querySelector('.card-text');
+    textEl.setAttribute('contenteditable', 'false');
+    const board = getActiveBoard();
+    const node = findNodeInBoard(board, id);
+    let val = textEl.textContent.trim();
+    if (!val) val = node && node.parentId === null ? 'メインテーマ' : '（無題）';
+    const changed = node && node.text !== val;
+    if (changed) pushHistory();
+    textEl.textContent = val;
+    if (node) node.text = val;
+    if (node && node.parentId === null) renderTabs();
+    if (changed) scheduleAutoSave();
+  }
+
+  let dragState = null;
+  const lastNodeTapMap = new Map();
+
+  function startCardDrag(id, e, isTouch) {
+    const board = getActiveBoard();
+    const node = findNodeInBoard(board, id);
+    if (!node) return;
+    dragState = { id, startClientX: e.clientX, startClientY: e.clientY, startX: node.x, startY: node.y, moved: false, isTouch: !!isTouch, pendingSnapshot: snapshotState() };
+    if (isTouch) {
+      document.addEventListener('touchmove', onCardDragMoveTouch, { passive: false });
+      document.addEventListener('touchend', onCardDragEndTouch);
+    } else {
+      document.addEventListener('mousemove', onCardDragMove);
+      document.addEventListener('mouseup', onCardDragEnd);
+    }
+  }
+
+  function onCardDragMoveCore(clientX, clientY) {
+    if (!dragState) return;
+    const board = getActiveBoard();
+    const node = findNodeInBoard(board, dragState.id);
+    if (!node) return;
+    const dx = (clientX - dragState.startClientX) / view.scale;
+    const dy = (clientY - dragState.startClientY) / view.scale;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+      if (!dragState.moved && dragState.pendingSnapshot) {
+        undoStack.push(dragState.pendingSnapshot);
+        if (undoStack.length > MAX_HISTORY) undoStack.shift();
+        redoStack.length = 0;
+        updateUndoRedoButtons();
+        dragState.pendingSnapshot = null;
+      }
+      dragState.moved = true;
+    }
+    node.x = dragState.startX + dx;
+    node.y = dragState.startY + dy;
+    updateCardPosition(node);
+    redrawEdgesTouching(node.id);
+  }
+
+  function onCardDragMove(e) { onCardDragMoveCore(e.clientX, e.clientY); }
+
+  function onCardDragMoveTouch(e) {
+    if (!dragState) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    onCardDragMoveCore(t.clientX, t.clientY);
+  }
+
+  function handleCardDragFinish() {
+    if (dragState) {
+      if (dragState.moved) {
+        scheduleAutoSave();
+      } else if (dragState.isTouch) {
+        // Tap (no movement) on touch: detect double-tap to enter edit mode.
+        const id = dragState.id;
+        const now = Date.now();
+        const last = lastNodeTapMap.get(id) || 0;
+        if (now - last < 350) { enterEditMode(id); lastNodeTapMap.delete(id); }
+        else lastNodeTapMap.set(id, now);
+      }
+    }
+    dragState = null;
+  }
+
+  function onCardDragEnd() {
+    document.removeEventListener('mousemove', onCardDragMove);
+    document.removeEventListener('mouseup', onCardDragEnd);
+    handleCardDragFinish();
+  }
+
+  function onCardDragEndTouch() {
+    document.removeEventListener('touchmove', onCardDragMoveTouch);
+    document.removeEventListener('touchend', onCardDragEndTouch);
+    handleCardDragFinish();
+  }
+
+  // ---------- Node lifecycle ----------
+
+  function branchFromNode(parentId) {
+    const board = getActiveBoard();
+    const parent = findNodeInBoard(board, parentId);
+    if (!parent) return;
+    pushHistory();
+    if (parent.collapsed) parent.collapsed = false;
+    const child = addChildNode(board, parent, '新しいノード');
+    createCardEl(child);
+    createEdgeForNode(child, true);
+    refreshCollapseToggle(parent);
+    refreshVisibility();
+    selectCard(child.id);
+    enterEditMode(child.id);
+    scheduleAutoSave();
+  }
+
+  function addNodeFromSelection() {
+    const board = getActiveBoard();
+    const parent = selectedId ? findNodeInBoard(board, selectedId) : getRoot(board);
+    branchFromNode(parent.id);
+  }
+
+  function deleteNode(id) {
+    const board = getActiveBoard();
+    const node = findNodeInBoard(board, id);
+    if (!node) return;
+    if (node.parentId === null) { setStatus('テーマノードは削除できません'); return; }
+    const ok = window.confirm('このノードを削除しますか？（つながる子ノードもすべて削除されます）');
+    if (!ok) return;
+    pushHistory();
+
+    const parentId = node.parentId;
+    const toRemove = new Set();
+    const stack = [id];
+    while (stack.length) {
+      const cur = stack.pop();
+      toRemove.add(cur);
+      board.nodes.filter(n => n.parentId === cur).forEach(c => stack.push(c.id));
+    }
+    toRemove.forEach(rid => { removeEdgeEl(rid); removeCardEl(rid); });
+    board.nodes = board.nodes.filter(n => !toRemove.has(n.id));
+    if (selectedId && toRemove.has(selectedId)) selectedId = null;
+    const parent = findNodeInBoard(board, parentId);
+    if (parent) refreshCollapseToggle(parent);
+    scheduleAutoSave();
+  }
+
+  // ---------- Swatches ----------
+
+  function buildSwatches() {
+    swatchesEl.innerHTML = '';
+    BRANCH_COLORS.forEach(hex => {
+      const btn = document.createElement('button');
+      btn.className = 'swatch';
+      btn.dataset.hex = hex;
+      btn.style.background = hex;
+      btn.title = '選択中のノード以下をこの色に';
+      btn.addEventListener('click', () => {
+        if (!selectedId) { setStatus('先にノードを選んでください'); return; }
+        const board = getActiveBoard();
+        const node = findNodeInBoard(board, selectedId);
+        if (!node || node.parentId === null) { setStatus('テーマノードの色は変更できません'); return; }
+        pushHistory();
+        recolorSubtree(board, selectedId, hex);
+        highlightSwatch();
+        scheduleAutoSave();
+      });
+      swatchesEl.appendChild(btn);
+    });
+  }
+
+  function highlightSwatch() {
+    document.querySelectorAll('.swatch').forEach(s => s.style.borderColor = 'rgba(0,0,0,0.08)');
+    if (!selectedId) return;
+    const board = getActiveBoard();
+    const node = findNodeInBoard(board, selectedId);
+    if (!node || !node.branchColor) return;
+    const el = swatchesEl.querySelector(`[data-hex="${node.branchColor}"]`);
+    if (el) el.style.borderColor = 'var(--primary)';
+  }
+
+  // ---------- Tabs ----------
+
+  function renderTabs() {
+    tabsEl.querySelectorAll('.tab').forEach(t => t.remove());
+    boards.forEach(board => {
+      const tab = document.createElement('div');
+      tab.className = 'tab' + (board.id === activeBoardId ? ' active' : '');
+      tab.dataset.id = board.id;
+
+      const label = document.createElement('span');
+      label.className = 'tab-label';
+      label.textContent = getBoardTitle(board);
+      label.setAttribute('spellcheck', 'false');
+      tab.appendChild(label);
+
+      if (boards.length > 1) {
+        const close = document.createElement('button');
+        close.className = 'tab-close';
+        close.textContent = '✕';
+        close.title = 'タブを削除';
+        close.addEventListener('click', (e) => { e.stopPropagation(); closeBoard(board.id); });
+        tab.appendChild(close);
+      }
+
+      tab.addEventListener('click', () => { if (board.id !== activeBoardId) switchBoard(board.id); });
+      tab.addEventListener('dblclick', (e) => { e.stopPropagation(); editTabLabel(board.id, label); });
+
+      tabsEl.insertBefore(tab, addTabBtn);
+    });
+  }
+
+  function editTabLabel(boardId, labelEl) {
+    if (boardId !== activeBoardId) switchBoard(boardId);
+    labelEl.setAttribute('contenteditable', 'true');
+    labelEl.focus();
+    const range = document.createRange();
+    range.selectNodeContents(labelEl);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    function commit() {
+      labelEl.setAttribute('contenteditable', 'false');
+      const board = boards.find(b => b.id === boardId);
+      const root = getRoot(board);
+      let val = labelEl.textContent.trim();
+      if (!val) val = 'メインテーマ';
+      const changed = root.text !== val;
+      if (changed) pushHistory();
+      root.text = val;
+      labelEl.textContent = val;
+      if (board.id === activeBoardId) {
+        const el = cardEls.get(root.id);
+        if (el) el.querySelector('.card-text').textContent = val;
+      }
+      if (changed) scheduleAutoSave();
+      labelEl.removeEventListener('blur', commit);
+      labelEl.removeEventListener('keydown', onKey);
+    }
+    function onKey(e) {
+      if (e.key === 'Enter') { e.preventDefault(); labelEl.blur(); }
+    }
+    labelEl.addEventListener('blur', commit);
+    labelEl.addEventListener('keydown', onKey);
+  }
+
+  function switchBoard(id) {
+    const current = getActiveBoard();
+    if (current) current.view = { ...view };
+    activeBoardId = id;
+    selectedId = null;
+    const board = getActiveBoard();
+    fullRenderBoard(board);
+    if (board.view) { view = { ...board.view }; applyView(); }
+    else centerView();
+    renderTabs();
+  }
+
+  function addNewBoard() {
+    pushHistory();
+    const board = createBoard('新しいテーマ');
+    boards.push(board);
+    switchBoard(board.id);
+    scheduleAutoSave();
+    setTimeout(() => {
+      const label = tabsEl.querySelector(`.tab[data-id="${board.id}"] .tab-label`);
+      if (label) editTabLabel(board.id, label);
+    }, 30);
+  }
+
+  function closeBoard(id) {
+    if (boards.length <= 1) return;
+    const ok = window.confirm('このテーマ（タブ）を削除しますか？');
+    if (!ok) return;
+    pushHistory();
+    boards = boards.filter(b => b.id !== id);
+    if (activeBoardId === id) switchBoard(boards[0].id);
+    else renderTabs();
+    scheduleAutoSave();
+  }
+
+  // ---------- Export: CSV ----------
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportCSV() {
+    const board = getActiveBoard();
+    const rows = [['ID', '親ID', '階層', 'テキスト']];
+    board.nodes.forEach(n => rows.push([n.id, n.parentId || '', n.depth, n.text]));
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    downloadBlob(blob, `${sanitizeFilename(getBoardTitle(board))}.csv`);
+    setStatus('CSVを書き出しました');
+  }
+
+  // ---------- Export: PDF (print) ----------
+
+  function buildOutlineHTML(board, node) {
+    const children = board.nodes.filter(n => n.parentId === node.id);
+    if (children.length === 0) return '';
+    let html = '<ul>';
+    children.forEach(c => {
+      const color = c.branchColor || '#333333';
+      html += `<li><span class="dot" style="background:${color}"></span>${escapeHtml(c.text)}${buildOutlineHTML(board, c)}</li>`;
+    });
+    html += '</ul>';
+    return html;
+  }
+
+  function exportPDF() {
+    const board = getActiveBoard();
+    const root = getRoot(board);
+    printArea.innerHTML = `<h1>${escapeHtml(root.text)}</h1>` + buildOutlineHTML(board, root);
+    setStatus('印刷ダイアログでPDF保存してください');
+    setTimeout(() => window.print(), 50);
+  }
+
+  // ---------- Export: PPTX (editable) ----------
+
+  async function exportPPTX() {
+    if (typeof PptxGenJS === 'undefined') { setStatus('PowerPoint機能の読み込みに失敗しました'); return; }
+    const board = getActiveBoard();
+    const root = getRoot(board);
+    const pptx = new PptxGenJS();
+    pptx.defineLayout({ name: 'MM', width: 10, height: 5.63 });
+    pptx.layout = 'MM';
+
+    const title = pptx.addSlide();
+    title.background = { color: 'FFFFFF' };
+    title.addText(root.text, { x: 0.6, y: 2.0, w: 8.8, h: 1.2, fontSize: 32, bold: true, color: '20232B', fontFace: 'Yu Gothic' });
+    title.addText('思考マップ アウトライン', { x: 0.6, y: 3.1, w: 8.8, h: 0.6, fontSize: 14, color: '7A8194', fontFace: 'Yu Gothic' });
+
+    const outline = pptx.addSlide();
+    outline.background = { color: 'FFFFFF' };
+    outline.addText(root.text, { x: 0.5, y: 0.3, w: 9, h: 0.6, fontSize: 20, bold: true, color: '20232B', fontFace: 'Yu Gothic' });
+
+    const runs = [];
+    (function walk(node, depth) {
+      board.nodes.filter(n => n.parentId === node.id).forEach(c => {
+        runs.push({
+          text: c.text,
+          options: {
+            breakLine: true,
+            indentLevel: depth,
+            bullet: true,
+            fontSize: Math.max(11, 18 - depth * 2),
+            color: (c.branchColor || '#333333').replace('#', ''),
+            fontFace: 'Yu Gothic'
+          }
+        });
+        walk(c, depth + 1);
+      });
+    })(root, 0);
+
+    if (runs.length > 0) {
+      outline.addText(runs, { x: 0.5, y: 1.05, w: 9, h: 4.3, valign: 'top' });
+    }
+
+    await pptx.writeFile({ fileName: `${sanitizeFilename(getBoardTitle(board))}.pptx` });
+    setStatus('PowerPointを書き出しました');
+  }
+
+  // ---------- Export: JSON ----------
+
+  function exportJSON() {
+    const board = getActiveBoard();
+    const payload = JSON.stringify({ boards: [board] }, null, 2);
+    const blob = new Blob([payload], { type: 'application/json' });
+    downloadBlob(blob, `${sanitizeFilename(getBoardTitle(board))}.json`);
+    setStatus('JSONを書き出しました');
+  }
+
+  // ---------- Import: JSON (常に「新しいタブ」として追加する) ----------
+
+  // 思考マップ形式（nodes/boardsを持つ）かどうかを判定する
+  function looksLikeMindmapBoard(obj) {
+    return !!(obj && Array.isArray(obj.nodes));
+  }
+
+  // 任意のJSON構造を、キーと階層構造からノードツリーに変換する。
+  // オブジェクトのキーはそのまま子ノードのタイトルになり、値が
+  // 文字列/数値等のプリミティブであれば「キー: 値」の形で1つのノードに、
+  // オブジェクト/配列であればさらにその中身を子ノードとして展開する。
+  function genericJsonToBoard(value, rootLabel) {
+    const MAX_DEPTH = 8;
+    const MAX_CHILDREN = 60;
+
+    const board = { id: 'b' + Date.now() + Math.floor(Math.random() * 1000) + '_generic', nodes: [], view: null };
+    const root = makeNode(board, CENTER, CENTER, rootLabel || 'JSON', null, 0, null);
+
+    function primitiveLabel(key, v) {
+      if (v === null) return key;
+      const s = String(v);
+      return s === '' ? key : (key + ': ' + s);
+    }
+
+    function walk(parentNode, val, depth) {
+      if (depth > MAX_DEPTH) {
+        addChildNode(board, parentNode, '…(これ以上深い階層は省略)');
+        return;
+      }
+      if (Array.isArray(val)) {
+        const items = val.slice(0, MAX_CHILDREN);
+        items.forEach((item, i) => {
+          if (item !== null && typeof item === 'object') {
+            const child = addChildNode(board, parentNode, '#' + (i + 1));
+            walk(child, item, depth + 1);
+          } else {
+            addChildNode(board, parentNode, String(item));
+          }
+        });
+        if (val.length > MAX_CHILDREN) {
+          addChildNode(board, parentNode, '…他 ' + (val.length - MAX_CHILDREN) + ' 件');
+        }
+      } else if (val !== null && typeof val === 'object') {
+        const keys = Object.keys(val);
+        const limited = keys.slice(0, MAX_CHILDREN);
+        limited.forEach(key => {
+          const v = val[key];
+          if (v !== null && typeof v === 'object') {
+            const child = addChildNode(board, parentNode, key);
+            walk(child, v, depth + 1);
+          } else {
+            addChildNode(board, parentNode, primitiveLabel(key, v));
+          }
+        });
+        if (keys.length > MAX_CHILDREN) {
+          addChildNode(board, parentNode, '…他 ' + (keys.length - MAX_CHILDREN) + ' 項目');
+        }
+      }
+    }
+
+    walk(root, value, 1);
+    return board;
+  }
+
+  function importJSONFile(file) {
+    const reader = new FileReader();
+    reader.onerror = () => setStatus('読み込み失敗: ファイルを読み取れませんでした');
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result);
+        const rootLabel = (file.name || 'JSON').replace(/\.json$/i, '') || 'JSON';
+
+        // 1) 思考マップ自身が書き出した形式かどうかを判定する:
+        //    - { boards: [ {nodes:[...]}, ... ] }
+        //    - { nodes: [...] } / { nodes:[...], edges:[...] }
+        //    - [ {nodes:[...]}, ... ]  (boards配列そのもの)
+        let nativeBoards = null;
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed.every(looksLikeMindmapBoard)) {
+          nativeBoards = parsed;
+        } else if (parsed && Array.isArray(parsed.boards) && parsed.boards.length > 0 && parsed.boards.every(looksLikeMindmapBoard)) {
+          nativeBoards = parsed.boards;
+        } else if (looksLikeMindmapBoard(parsed)) {
+          nativeBoards = [parsed];
+        }
+
+        pushHistory();
+        let importedCount = 0;
+        let lastBoard = null;
+
+        if (nativeBoards) {
+          // ---- 思考マップ形式としてインポート（IDを振り直して安全に追加） ----
+          nativeBoards.forEach(srcBoard => {
+            if (!srcBoard || !Array.isArray(srcBoard.nodes) || srcBoard.nodes.length === 0) return;
+            const idMap = {};
+            const newBoard = { id: 'b' + Date.now() + Math.floor(Math.random() * 1000) + '_' + importedCount, nodes: [], view: null };
+
+            // 旧「自由連結グラフ」形式（edges: [{from,to}]）の場合は、
+            // 最初に見つかったfromをparentId扱いにして簡易的に階層化する
+            const parentOf = {};
+            if (Array.isArray(srcBoard.edges)) {
+              srcBoard.edges.forEach(edge => {
+                if (edge && edge.to !== undefined && !(edge.to in parentOf)) {
+                  parentOf[edge.to] = edge.from;
+                }
+              });
+            }
+
+            srcBoard.nodes.forEach(n => {
+              idMap[n.id] = 'n' + (globalNodeCounter++);
+            });
+
+            srcBoard.nodes.forEach((n, index) => {
+              let parentIdRaw = ('parentId' in n) ? n.parentId : (parentOf[n.id] !== undefined ? parentOf[n.id] : null);
+              if (parentIdRaw === undefined) parentIdRaw = null;
+              newBoard.nodes.push({
+                id: idMap[n.id] || ('n' + (globalNodeCounter++)),
+                x: typeof n.x === 'number' ? n.x : (CENTER + (index * 15)),
+                y: typeof n.y === 'number' ? n.y : (CENTER + (index * 15)),
+                text: typeof n.text === 'string' && n.text ? n.text : '（無題）',
+                parentId: (parentIdRaw === null) ? null : (idMap[parentIdRaw] || null),
+                depth: typeof n.depth === 'number' ? n.depth : 0,
+                branchColor: n.branchColor || null,
+                collapsed: !!n.collapsed
+              });
+            });
+
+            if (!newBoard.nodes.some(n => n.parentId === null)) {
+              newBoard.nodes[0].parentId = null;
+              newBoard.nodes[0].depth = 0;
+            }
+            const byId = {};
+            newBoard.nodes.forEach(n => { byId[n.id] = n; });
+            function resolveDepth(n, guard) {
+              if (n.parentId === null || guard > 50) return 0;
+              const parent = byId[n.parentId];
+              if (!parent) return 0;
+              return resolveDepth(parent, guard + 1) + 1;
+            }
+            newBoard.nodes.forEach(n => { n.depth = resolveDepth(n, 0); });
+
+            let depth1Index = 0;
+            newBoard.nodes.filter(n => n.parentId && byId[n.parentId] && byId[n.parentId].parentId === null)
+              .forEach(n => { if (!n.branchColor) { n.branchColor = BRANCH_COLORS[depth1Index % BRANCH_COLORS.length]; depth1Index++; } });
+            newBoard.nodes.slice().sort((a, b) => a.depth - b.depth).forEach(n => {
+              if (!n.branchColor && n.parentId && byId[n.parentId]) {
+                n.branchColor = byId[n.parentId].branchColor || null;
+              }
+            });
+
+            boards.push(newBoard);
+            lastBoard = newBoard;
+            importedCount++;
+          });
+        } else {
+          // ---- 思考マップ形式ではない任意のJSON: キー階層をノードツリーに変換 ----
+          const newBoard = genericJsonToBoard(parsed, rootLabel);
+          boards.push(newBoard);
+          lastBoard = newBoard;
+          importedCount = 1;
+        }
+
+        if (importedCount === 0 || !lastBoard) {
+          setStatus('読み込み失敗: 有効なデータがありませんでした');
+          return;
+        }
+
+        switchBoard(lastBoard.id);
+        setStatus(nativeBoards
+          ? ('JSONを新しいタブとして読み込みました（' + importedCount + '件）')
+          : 'JSONの内容を新しいタブに変換しました');
+        scheduleAutoSave();
+      } catch (err) {
+        setStatus('読み込み失敗: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  // ---------- Backend integration (Google Apps Script Web App) ----------
+  // このHTML(index.html)はVercel等の静的ホスティングに置く想定ですが、
+  // データの保存・読込先は個人利用のシンプルなGAS(Google Apps Script)の
+  // Webアプリです。下の GAS_URL を、実際にデプロイしたGASのURL
+  // （https://script.google.com/macros/s/xxxxx/exec）に書き換えてください。
+  //
+  // POSTはCORSのプリフライト(OPTIONS)を発生させないよう、
+  // 'Content-Type: text/plain' で送信しています（GAS側はこれでも
+  // e.postData.contents としてJSON文字列を受け取れます）。
+
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxEEpRynghR6VDbqRHzfZCququjQmK2HfTG7WVfCWwEzQVaVjOjssArbaNBU1fD4lwHMA/exec';
+  const API_TOKEN = ''; // GAS側のスクリプトプロパティ API_TOKEN と一致させる場合のみ設定
+
+  function serializeState() {
+    return JSON.stringify({ boards, activeBoardId, globalNodeCounter });
+  }
+
+  async function performSave(isAuto) {
+    const payload = serializeState();
+    setStatus(isAuto ? '自動保存中…' : '保存中…');
+    try {
+      const res = await fetch(GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ payload, token: API_TOKEN })
+      });
+      const data = await res.json();
+      if (data && data.ok) {
+        setStatus((isAuto ? '自動保存済み ' : '保存済み ') + nowTimeStr());
+      } else {
+        setStatus('保存失敗: ' + (data && data.error ? data.error : '不明なエラー'));
+      }
+    } catch (err) {
+      setStatus('保存失敗（未接続）: ' + err.message);
+    }
+  }
+
+  function scheduleAutoSave() {
+    if (autosaveTimer) clearTimeout(autosaveTimer);
+    if (!autosaveEnabled) return;
+    autosaveTimer = setTimeout(() => performSave(true), 2500);
+  }
+
+  async function loadFromServer() {
+    setStatus('読み込み中…');
+    try {
+      const url = GAS_URL + (API_TOKEN ? ('?token=' + encodeURIComponent(API_TOKEN)) : '');
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data && data.ok && data.data) {
+        const parsed = JSON.parse(data.data);
+        boards = parsed.boards;
+        activeBoardId = parsed.activeBoardId;
+        globalNodeCounter = parsed.globalNodeCounter || globalNodeCounter;
+        fullRenderBoard(getActiveBoard());
+        centerView();
+        renderTabs();
+        updateUndoRedoButtons();
+        setStatus('読み込みました');
+        return;
+      }
+      setStatus('保存データなし（初回起動）');
+    } catch (err) {
+      setStatus('未接続（ローカルのみで利用中）');
+    }
+  }
+
+  // ---------- Pan & Zoom ----------
+
+  let panState = null;
+
+  wrapEl.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.card')) return;
+    deselectAll();
+    panState = { startClientX: e.clientX, startClientY: e.clientY, startTx: view.tx, startTy: view.ty };
+    wrapEl.classList.add('panning');
+    document.addEventListener('mousemove', onPanMove);
+    document.addEventListener('mouseup', onPanEnd);
+  });
+
+  function onPanMove(e) {
+    if (!panState) return;
+    view.tx = panState.startTx + (e.clientX - panState.startClientX);
+    view.ty = panState.startTy + (e.clientY - panState.startClientY);
+    applyView();
+  }
+
+  function onPanEnd() {
+    panState = null;
+    wrapEl.classList.remove('panning');
+    document.removeEventListener('mousemove', onPanMove);
+    document.removeEventListener('mouseup', onPanEnd);
+  }
+
+  wrapEl.addEventListener('dblclick', (e) => {
+    if (e.target.closest('.card')) return;
+    addNodeFromSelection();
+  });
+
+  // ---- Touch: pan (1 finger), pinch-zoom (2 fingers), double-tap to add node ----
+
+  const canvasTouch = { mode: null, moved: false, startX: 0, startY: 0, startTx: 0, startTy: 0, startDist: 0, startScale: 1, pinchWorldX: 0, pinchWorldY: 0 };
+  let lastCanvasTapTime = 0;
+
+  function touchDist(t0, t1) { return Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY); }
+  function touchMid(t0, t1) { return { x: (t0.clientX + t1.clientX) / 2, y: (t0.clientY + t1.clientY) / 2 }; }
+
+  wrapEl.addEventListener('touchstart', (e) => {
+    if (e.target.closest('.card')) return;
+    if (e.touches.length === 1) {
+      deselectAll();
+      canvasTouch.mode = 'pan';
+      canvasTouch.moved = false;
+      canvasTouch.startX = e.touches[0].clientX;
+      canvasTouch.startY = e.touches[0].clientY;
+      canvasTouch.startTx = view.tx;
+      canvasTouch.startTy = view.ty;
+    } else if (e.touches.length === 2) {
+      canvasTouch.mode = 'pinch';
+      canvasTouch.moved = true;
+      canvasTouch.startDist = touchDist(e.touches[0], e.touches[1]);
+      canvasTouch.startScale = view.scale;
+      const mid = touchMid(e.touches[0], e.touches[1]);
+      const rect = wrapEl.getBoundingClientRect();
+      canvasTouch.pinchWorldX = (mid.x - rect.left - view.tx) / view.scale;
+      canvasTouch.pinchWorldY = (mid.y - rect.top - view.ty) / view.scale;
+    }
+  }, { passive: false });
+
+  wrapEl.addEventListener('touchmove', (e) => {
+    if (canvasTouch.mode === 'pan' && e.touches.length === 1) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - canvasTouch.startX;
+      const dy = e.touches[0].clientY - canvasTouch.startY;
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) canvasTouch.moved = true;
+      view.tx = canvasTouch.startTx + dx;
+      view.ty = canvasTouch.startTy + dy;
+      applyView();
+    } else if (canvasTouch.mode === 'pinch' && e.touches.length === 2) {
+      e.preventDefault();
+      const dist = touchDist(e.touches[0], e.touches[1]);
+      const scaleFactor = dist / (canvasTouch.startDist || 1);
+      const newScale = clamp(canvasTouch.startScale * scaleFactor, 0.3, 2.5);
+      const rect = wrapEl.getBoundingClientRect();
+      const mid = touchMid(e.touches[0], e.touches[1]);
+      const screenX = mid.x - rect.left, screenY = mid.y - rect.top;
+      view.tx = screenX - newScale * canvasTouch.pinchWorldX;
+      view.ty = screenY - newScale * canvasTouch.pinchWorldY;
+      view.scale = newScale;
+      applyView();
+    }
+  }, { passive: false });
+
+  wrapEl.addEventListener('touchend', (e) => {
+    if (canvasTouch.mode === 'pan' && !canvasTouch.moved && e.touches.length === 0) {
+      const now = Date.now();
+      if (now - lastCanvasTapTime < 350) { addNodeFromSelection(); lastCanvasTapTime = 0; }
+      else lastCanvasTapTime = now;
+    }
+    if (e.touches.length === 1) {
+      canvasTouch.mode = 'pan';
+      canvasTouch.moved = true;
+      canvasTouch.startX = e.touches[0].clientX;
+      canvasTouch.startY = e.touches[0].clientY;
+      canvasTouch.startTx = view.tx;
+      canvasTouch.startTy = view.ty;
+    } else if (e.touches.length === 0) {
+      canvasTouch.mode = null;
+    }
+  });
+
+  wrapEl.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const rect = wrapEl.getBoundingClientRect();
+    const screenX = e.clientX - rect.left, screenY = e.clientY - rect.top;
+    const delta = -e.deltaY * 0.0015;
+    const newScale = clamp(view.scale * (1 + delta), 0.3, 2.5);
+    const worldX = (screenX - view.tx) / view.scale, worldY = (screenY - view.ty) / view.scale;
+    view.tx = screenX - newScale * worldX;
+    view.ty = screenY - newScale * worldY;
+    view.scale = newScale;
+    applyView();
+  }, { passive: false });
+
+  function zoomBy(factor) {
+    const rect = wrapEl.getBoundingClientRect();
+    const screenX = rect.width / 2, screenY = rect.height / 2;
+    const newScale = clamp(view.scale * factor, 0.3, 2.5);
+    const worldX = (screenX - view.tx) / view.scale, worldY = (screenY - view.ty) / view.scale;
+    view.tx = screenX - newScale * worldX;
+    view.ty = screenY - newScale * worldY;
+    view.scale = newScale;
+    applyView();
+  }
+
+  // ---------- Keyboard ----------
+
+  document.addEventListener('keydown', (e) => {
+    const active = document.activeElement;
+    const isEditing = active && active.getAttribute && active.getAttribute('contenteditable') === 'true';
+    if (isEditing) return;
+    if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) { e.preventDefault(); deleteNode(selectedId); }
+    if (e.key === 'Escape') deselectAll();
+    const mod = e.ctrlKey || e.metaKey;
+    if (mod && e.key.toLowerCase() === 'z') {
+      e.preventDefault();
+      if (e.shiftKey) redo(); else undo();
+    } else if (mod && e.key.toLowerCase() === 'y') {
+      e.preventDefault();
+      redo();
+    }
+  });
+
+  // ---------- Toolbar bindings ----------
+
+  document.getElementById('addBtn').addEventListener('click', addNodeFromSelection);
+  addTabBtn.addEventListener('click', addNewBoard);
+  document.getElementById('manualSaveBtn').addEventListener('click', () => performSave(false));
+  document.getElementById('autosaveToggle').addEventListener('change', (e) => {
+    autosaveEnabled = e.target.checked;
+    if (autosaveEnabled) scheduleAutoSave();
+  });
+  exportBtn.addEventListener('click', (e) => { e.stopPropagation(); exportMenu.classList.toggle('open'); });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.export-wrap')) exportMenu.classList.remove('open');
+  });
+  exportMenu.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      exportMenu.classList.remove('open');
+      const fmt = btn.dataset.fmt;
+      if (fmt === 'csv') exportCSV();
+      else if (fmt === 'pdf') exportPDF();
+      else if (fmt === 'pptx') exportPPTX();
+      else if (fmt === 'json') exportJSON();
+    });
+  });
+  document.getElementById('importBtn').addEventListener('click', () => {
+    document.getElementById('importFileInput').click();
+  });
+  document.getElementById('importFileInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) importJSONFile(file);
+    e.target.value = '';
+  });
+  document.getElementById('undoBtn').addEventListener('click', undo);
+  document.getElementById('redoBtn').addEventListener('click', redo);
+  document.getElementById('hintClose').addEventListener('click', () => document.getElementById('hint').classList.add('hidden'));
+  document.getElementById('zoomIn').addEventListener('click', () => zoomBy(1.2));
+  document.getElementById('zoomOut').addEventListener('click', () => zoomBy(1 / 1.2));
+  document.getElementById('zoomReset').addEventListener('click', centerView);
+
+  // ---------- Init ----------
+
+  function init() {
+    buildSwatches();
+    seedDefaultBoards();
+    fullRenderBoard(getActiveBoard());
+    centerView();
+    renderTabs();
+    updateUndoRedoButtons();
+    loadFromServer();
+  }
+
+  window.addEventListener('load', init);
+  window.addEventListener('resize', () => applyView());
+
+})();
+</script>
+</body>
+</html>
